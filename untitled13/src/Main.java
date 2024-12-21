@@ -32,7 +32,7 @@ class Transaction {
         return category;
     }
 }
-
+//修改完毕
 public class Main {
     private static List<Transaction> incomeList = new ArrayList<>();
     private static List<Transaction> expenseList = new ArrayList<>();
