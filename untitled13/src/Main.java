@@ -1,5 +1,9 @@
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 class Transaction {
@@ -32,16 +36,64 @@ class Transaction {
         return category;
     }
 }
-//修改完毕
+
+class BudgetManager {
+    private double monthlyBudget;
+    private double remainingBudget;
+    private List<Transaction> transactions;
+
+    public BudgetManager(double monthlyBudget) {
+        this.monthlyBudget = monthlyBudget;
+        this.remainingBudget = monthlyBudget;
+        this.transactions = new ArrayList<>();
+    }
+
+    public void addTransaction(Transaction transaction) {
+        transactions.add(transaction);
+        if (transaction.getAmount() < 0) {
+            remainingBudget += transaction.getAmount();
+        } else {
+            remainingBudget -= transaction.getAmount();
+        }
+    }
+
+    public double getRemainingBudget() {
+        return remainingBudget;
+    }
+
+    public void setMonthlyBudget(double monthlyBudget) {
+        this.monthlyBudget = monthlyBudget;
+        this.remainingBudget = monthlyBudget;
+    }
+
+    public double getMonthlyBudget() {
+        return monthlyBudget;
+    }
+}
+
 public class Main {
     private static List<Transaction> incomeList = new ArrayList<>();
     private static List<Transaction> expenseList = new ArrayList<>();
+    private static BudgetManager budgetManager;
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
+        budgetManager = new BudgetManager(0); // Initialize with no budget
 
         while (true) {
-            System.out.println("请选择操作：1. 记录收入 2. 记录支出 3. 展示账单 4. 查询账单 5. 退出");
+            System.out.println("=================================\n" +
+                    "欢迎使用个人账单管理系统\n" +
+                    "=================================\n" +
+                    "请选择操作：\n" +
+                    "1. 记录收入\n" +
+                    "2. 记录支出\n" +
+                    "3. 展示账单\n" +
+                    "4. 查询账单\n" +
+                    "5. 预算管理\n" +
+                    "6. 月度统计\n" +
+                    "7. 退出\n" +
+                    "\n" +
+                    "请输入序列号：");
             int choice = scanner.nextInt();
             scanner.nextLine(); // 消费换行符
 
@@ -59,6 +111,12 @@ public class Main {
                     queryTransactions(scanner);
                     break;
                 case 5:
+                    budgetManagement(scanner);
+                    break;
+                case 6:
+                    monthlyStatistics();
+                    break;
+                case 7:
                     System.out.println("退出系统。");
                     scanner.close();
                     return;
@@ -70,7 +128,9 @@ public class Main {
     }
 
     private static void recordIncome(Scanner scanner) {
-        System.out.println("输入日期（格式：yyyy-MM-dd）：");
+        System.out.println("=================================\n" +
+                "欢迎使用个人账单管理系统\n" +
+                "=================================\n" +"输入日期（格式：yyyy-MM-dd）：");
         String incomeDate = scanner.nextLine();
         System.out.println("输入收入金额（必须为正数）：");
         double incomeAmount = scanner.nextDouble();
@@ -88,7 +148,9 @@ public class Main {
     }
 
     private static void recordExpense(Scanner scanner) {
-        System.out.println("输入日期（格式：yyyy-MM-dd）：");
+        System.out.println("=================================\n" +
+                "欢迎使用个人账单管理系统\n" +
+                "=================================\n" +"输入日期（格式：yyyy-MM-dd）：");
         String expenseDate = scanner.nextLine();
         System.out.println("输入支出金额（必须为正数）：");
         double expenseAmount = scanner.nextDouble();
@@ -99,7 +161,8 @@ public class Main {
             System.out.println("输入备注：");
             String expenseRemarks = scanner.nextLine();
             expenseList.add(new Transaction(expenseDate, expenseAmount, expenseCategory, expenseRemarks));
-            System.out.println("支出记录成功！");
+            budgetManager.addTransaction(new Transaction(expenseDate, expenseAmount, expenseCategory, expenseRemarks));
+            System.out.println("支出记录成功，当前剩余预算：" + budgetManager.getRemainingBudget());
         } else {
             System.out.println("支出金额必须为正数！");
         }
@@ -175,6 +238,57 @@ public class Main {
             default:
                 System.out.println("无效的查询类型，请重新选择。");
                 break;
+        }
+    }
+
+    private static void budgetManagement(Scanner scanner) {
+        System.out.println("选择预算管理操作：1. 设置预算 2. 查看预算");
+        int budgetChoice = scanner.nextInt();
+        scanner.nextLine(); // 消费换行符
+
+        switch (budgetChoice) {
+            case 1:
+                System.out.println("输入每月预算限额：");
+                double budget = scanner.nextDouble();
+                budgetManager.setMonthlyBudget(budget);
+                System.out.println("预算设置成功，当前预算：" + budgetManager.getMonthlyBudget());
+                break;
+            case 2:
+                System.out.println("当前每月预算：" + budgetManager.getMonthlyBudget() + "，剩余预算：" + budgetManager.getRemainingBudget());
+                break;
+            default:
+                System.out.println("无效的预算管理操作，请重新选择。");
+                break;
+        }
+    }
+
+    private static void monthlyStatistics() {
+        System.out.println("月度统计：");
+        Map<String, Double> monthlyIncome = new HashMap<>();
+        Map<String, Double> monthlyExpense = new HashMap<>();
+
+        for (Transaction income : incomeList) {
+            String yearMonth = income.getDate().substring(0, 7);
+            if (!monthlyIncome.containsKey(yearMonth)) {
+                monthlyIncome.put(yearMonth, 0.0);
+            }
+            monthlyIncome.put(yearMonth, monthlyIncome.get(yearMonth) + income.getAmount());
+        }
+
+        for (Transaction expense : expenseList) {
+            String yearMonth = expense.getDate().substring(0, 7);
+            if (!monthlyExpense.containsKey(yearMonth)) {
+                monthlyExpense.put(yearMonth, 0.0);
+            }
+            monthlyExpense.put(yearMonth, monthlyExpense.get(yearMonth) + expense.getAmount());
+        }
+
+        for (Map.Entry<String, Double> entry : monthlyIncome.entrySet()) {
+            System.out.println("月份：" + entry.getKey() + ", 总收入：" + entry.getValue());
+        }
+
+        for (Map.Entry<String, Double> entry : monthlyExpense.entrySet()) {
+            System.out.println("月份：" + entry.getKey() + ", 总支出：" + entry.getValue());
         }
     }
 }
